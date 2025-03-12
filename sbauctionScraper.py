@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=".")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Setup caching
