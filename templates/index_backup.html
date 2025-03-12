@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyBlock Auctions Search</title>
+    <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <h1>Hypixel SkyBlock Auctions Search</h1>
+    <h4>Receive live-updating listings on the SkyBlock auction house!</h4>
+    
+    <!-- Wrap the search box and spinner together -->
+    <div style="position: relative; display: inline-block; width: 100%;">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search for an item..."
+        />
+        <button onclick="fetchAuctions()">Search</button>
+
+        <!-- Spinner -->
+        <div id="spinner"></div>
+    </div>
+
+    <!-- Display error message (if any) -->
+    <div id="error-message" style="color: red; display: none;"></div>
+    
+    <ul id="results-list"></ul>
+
+    <script>
+        let itemList = []; // Initialize an empty list to hold the item data from the JSON.
+
+        // Load the items from the JSON file
+        async function loadItemList() {
+            try {
+                const response = await fetch('skyblock_item_list.json');
+                const data = await response.json();
+                itemList = data; // Assign the list of items to the itemList variable
+            } catch (error) {
+                console.error("Error loading item list:", error);
+            }
+        }
+
+        // Function to check if the search term matches any item name or id
+        function isItemValid(searchTerm) {
+            return itemList.some(item => 
+                item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                item.id.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Function to fetch auctions based on search input
+        async function fetchAuctions() {
+            const searchTerm = document.getElementById('searchInput').value;
+            if (!searchTerm) return;
+
+            // Check if the search term is valid (matches an item)
+            if (!isItemValid(searchTerm)) {
+                showError("No item detected. Please check for typos.");
+                return;
+            }
+
+            // Show spinner
+            document.getElementById('spinner').style.display = 'block';
+
+            try {
+                const response = await fetch(`/search?search_item=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+
+                // Handle errors in response
+                if (!data.results) {
+                    showError("No results found or error fetching auctions.");
+                    return;
+                }
+
+                const resultsList = document.getElementById('results-list');
+                const errorMessage = document.getElementById('error-message');
+
+                // Clear previous results
+                resultsList.innerHTML = "";
+                errorMessage.style.display = "none"; // Hide error message if no errors
+
+                data.results.forEach(auction => {
+                    const li = document.createElement('li');
+                    
+                    // Safely handle the item_data and count_section
+                    let auction_item_name = auction.item_name ? auction.item_name : "No item name available";
+                    let countSectionDisplay = auction.count_section ? auction.count_section : "No 'Count\\x' section available";
+
+                    if (countSectionDisplay > 1) {
+                        auction_item_name = `${auction.item_name} (${countSectionDisplay})`;
+                    }
+
+                    li.innerHTML = ` 
+                        <strong>${auction_item_name}</strong><br>
+                        ${auction.image_url ? `<img src="${auction.image_url}" alt="${auction.item_name}"><br>` : ""} 
+                        Price: $${auction.starting_bid.toLocaleString()}<br>
+                        Seller: ${auction.seller}<br>
+                        Listed: ${auction.time_display}<br>
+                    `;
+                    resultsList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error fetching auctions:", error);
+                showError("Failed to fetch auction data. Please try again.");
+            } finally {
+                // Hide spinner after loading is done
+                document.getElementById('spinner').style.display = 'none';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = message;
+        }
+
+        // Auto-refresh results every 30 seconds
+        setInterval(fetchAuctions, 30000);
+
+        // Trigger search on Enter key press
+        document.getElementById('searchInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                fetchAuctions();
+            }
+        });
+
+        // Load the items list when the page loads
+        loadItemList();
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+        }
+        /* Spinner styling */
+        #spinner {
+            display: none;
+            position: absolute;
+            top: 0px; /* Position below search box */
+            left: 19%; /* Center horizontally */
+            transform: translateX(-50%);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Error message styling */
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</body>
+</html>
