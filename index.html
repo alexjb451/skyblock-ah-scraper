@@ -45,7 +45,7 @@
         // Normalize input by removing special characters and converting to lowercase
         function normalizeString(str) {
             return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
-}
+        }
         
         // Function to check if the search term matches any item name or id
         function isItemValid(searchTerm) {
@@ -73,7 +73,8 @@
             document.getElementById('spinner').style.display = 'block';
 
             try {
-                const response = await fetch(`/search?search_item=${encodeURIComponent(searchTerm)}`);
+                const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';  // Replace this with your actual backend URL
+                const response = await fetch(`${searchApiUrl}?search_item=${encodeURIComponent(searchTerm)}`);
                 const data = await response.json();
 
                 // Handle errors in response

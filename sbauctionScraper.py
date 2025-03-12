@@ -58,10 +58,14 @@ async def get_item_list():
     return items
 
 # Load items and map images
-def load_items():
-    with open('skyblock_item_ids.json', 'r') as file:
-        items = json.load(file)
+async def load_items():
+    try:
+        with open('skyblock_item_ids.json', 'r') as file:
+            items = json.load(file)
         return items
+    except Exception as e:
+        print(f"Error loading items: {e}")
+        return []
 
 # Helper function to normalize strings
 def normalize_string(s):
@@ -100,26 +104,32 @@ def decode_and_decompress(item_bytes_base64):
     except Exception as e:
         return {"type": "error", "data": str(e)}  # Return error message if any error occurs
 
-# Search auctions based on query (Asynchronous version with rate-limiting)
+# Load items asynchronously
+async def load_items():
+    try:
+        with open('skyblock_item_ids.json', 'r') as file:
+            items = json.load(file)
+        return items
+    except Exception as e:
+        print(f"Error loading items: {e}")
+        return []
+
+# Update the search_auctions function to call load_items asynchronously
 async def search_auctions(search_item):
     found_auctions = []
-    items = load_items()
+    items = await load_items()  # Ensure async loading of items
 
-    # Normalize the search item
     normalized_search_item = normalize_string(search_item)
 
-    for page in range(2):  # Limit pages to avoid overload
+    for page in range(2):
         auctions = await get_auctions(page)
         if not auctions.get('success', False):
             continue
         
         for auction in auctions['auctions']:
-            # Normalize the auction item name
             normalized_item_name = normalize_string(auction['item_name'])
             
-            # Check if the normalized search item is found in the normalized item name
             if normalized_search_item in normalized_item_name and auction.get('bin', False):
-                # Try to find an image for the auction item
                 image_url = next((item['png'] for item in items if normalize_string(item['name']) == normalized_item_name), None)
 
                 auctioneer_uuid = auction.get('auctioneer', None)
@@ -127,7 +137,6 @@ async def search_auctions(search_item):
                 
                 auction_time = time_ago(auction['start'])
 
-                # Decode and decompress the item_bytes (if available)
                 item_bytes_base64 = auction.get('item_bytes')
                 decoded_item_data = None
                 count_section = None
@@ -136,8 +145,6 @@ async def search_auctions(search_item):
                     decoded_item_data = decode_and_decompress(item_bytes_base64)
                     if decoded_item_data['type'] == 'raw':
                         raw_data = decoded_item_data['data']
-                        
-                        # Extract the count section (if applicable)
                         marker = "Count\\x"
                         start_index = raw_data.find(marker)
                         if start_index != -1:
@@ -153,13 +160,13 @@ async def search_auctions(search_item):
                     "seller": seller_name,
                     "time_display": auction_time,
                     "image_url": image_url,
-                    "count_section": count_int  # Add the extracted Count\x01 section
+                    "count_section": count_int
                 })
 
-        # Rate limiting to avoid overloading external services
-        await asyncio.sleep(1)
+        await asyncio.sleep(1)  # Keep the rate-limiting intact
 
     return found_auctions
+
 
 # Serve the main page
 @app.get("/")
