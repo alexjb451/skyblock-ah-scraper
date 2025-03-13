@@ -18,14 +18,21 @@
             placeholder="Search for an item..."
         />
         <button onclick="fetchAuctions()">Search</button>
+    </div>
 
-        <!-- Spinner -->
-        <div id="spinner"></div>
+    <!-- Space for the spinner -->
+    <div id="spinner-container" style="margin-top: 20px; text-align: center;">
+        <div id="spinner" style="display: none;"></div>
     </div>
 
     <!-- Display error message (if any) -->
     <div id="error-message" style="color: red; display: none;"></div>
-    
+
+    <!-- No Auctions Found Message -->
+    <div id="no-auctions-message" style="display: none; color: rgb(63, 63, 63); margin-top: 20px; text-align: left;">
+        No recent auctions in the last 15 minutes.
+    </div>
+
     <ul id="results-list"></ul>
 
     <script>
@@ -69,8 +76,9 @@
                 return;
             }
 
-            // Show spinner
+            // Show spinner and add a gap
             document.getElementById('spinner').style.display = 'block';
+            document.getElementById('spinner-container').style.marginTop = '75px'; // Add a gap for the spinner
 
             try {
                 const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';  // Replace this with your actual backend URL
@@ -85,11 +93,20 @@
 
                 const resultsList = document.getElementById('results-list');
                 const errorMessage = document.getElementById('error-message');
+                const noAuctionsMessage = document.getElementById('no-auctions-message');
 
                 // Clear previous results
                 resultsList.innerHTML = "";
                 errorMessage.style.display = "none"; // Hide error message if no errors
+                noAuctionsMessage.style.display = "none"; // Hide the "no auctions" message initially
 
+                if (data.results.length === 0) {
+                    // No auctions found, show the "no recent auctions" message
+                    noAuctionsMessage.style.display = "block";
+                    return;
+                }
+
+                // Otherwise, display the auction results
                 data.results.forEach(auction => {
                     const li = document.createElement('li');
                     
@@ -114,8 +131,9 @@
                 console.error("Error fetching auctions:", error);
                 showError("Failed to fetch auction data. Please try again.");
             } finally {
-                // Hide spinner after loading is done
+                // Hide spinner after loading is done and remove the gap
                 document.getElementById('spinner').style.display = 'none';
+                document.getElementById('spinner-container').style.marginTop = '0'; // Remove the gap
             }
         }
 
@@ -168,8 +186,8 @@
         #spinner {
             display: none;
             position: absolute;
-            top: 0px; /* Position below search box */
-            left: 19%; /* Center horizontally */
+            top: 180px; /* Position below search box */
+            left: 7%; /* Center horizontally */
             transform: translateX(-50%);
             border: 4px solid #f3f3f3;
             border-top: 4px solid #3498db;
@@ -191,6 +209,13 @@
         #error-message {
             color: red;
             margin-top: 10px;
+        }
+
+        /* No auctions message styling */
+        #no-auctions-message {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
         }
     </style>
 </body>
