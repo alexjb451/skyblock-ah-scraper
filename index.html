@@ -5,159 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyBlock Auctions Search</title>
     <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
-</head>
-<body>
-    <h1>Hypixel SkyBlock Auctions Search</h1>
-    <h4>Search for an item to get live, real-time listings from the SkyBlock auction house!</h4>
-    
-    <!-- Wrap the search box and spinner together -->
-    <div style="position: relative; display: inline-block; width: 100%;">
-        <input
-            type="text"
-            id="searchInput"
-            placeholder="Search for an item..."
-        />
-        <button onclick="fetchAuctions()">Search</button>
-    </div>
-
-    <!-- Space for the spinner -->
-    <div id="spinner-container" style="margin-top: 20px; text-align: center;">
-        <div id="spinner" style="display: none;"></div>
-    </div>
-
-    <!-- Display error message (if any) -->
-    <div id="error-message" style="color: red; display: none;"></div>
-
-    <!-- No Auctions Found Message -->
-    <div id="no-auctions-message" style="display: none; color: rgb(63, 63, 63); margin-top: 20px; text-align: left;">
-        No recent auctions in the last 15 minutes.
-    </div>
-
-    <ul id="results-list"></ul>
-
-    <script>
-        let itemList = []; // Initialize an empty list to hold the item data from the JSON.
-
-        // Load the items from the JSON file
-        async function loadItemList() {
-            try {
-                const response = await fetch('/skyblock_item_list.json');
-                const data = await response.json();
-                itemList = data; // Assign the list of items to the itemList variable
-            } catch (error) {
-                console.error("Error loading item list:", error);
-            }
-        }
-
-        // Normalize input by removing special characters and converting to lowercase
-        function normalizeString(str) {
-            return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
-        }
-        
-        // Function to check if the search term matches any item name or id
-        function isItemValid(searchTerm) {
-            // Normalize the search term
-            const normalizedSearchTerm = normalizeString(searchTerm);
-
-            return itemList.some(item => 
-                normalizeString(item.name).includes(normalizedSearchTerm) || 
-                normalizeString(item.id).includes(normalizedSearchTerm)
-            );
-        }
-
-        // Function to fetch auctions based on search input
-        async function fetchAuctions() {
-            const searchTerm = document.getElementById('searchInput').value;
-            if (!searchTerm) return;
-
-            // Check if the search term is valid (matches an item)
-            if (!isItemValid(searchTerm)) {
-                showError("No item detected. Please check for typos.");
-                return;
-            }
-
-            // Show spinner and add a gap
-            document.getElementById('spinner').style.display = 'block';
-            document.getElementById('spinner-container').style.marginTop = '75px'; // Add a gap for the spinner
-
-            try {
-                const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';  // Replace this with your actual backend URL
-                const response = await fetch(`${searchApiUrl}?search_item=${encodeURIComponent(searchTerm)}`);
-                const data = await response.json();
-
-                // Handle errors in response
-                if (!data.results) {
-                    showError("No results found or error fetching auctions.");
-                    return;
-                }
-
-                const resultsList = document.getElementById('results-list');
-                const errorMessage = document.getElementById('error-message');
-                const noAuctionsMessage = document.getElementById('no-auctions-message');
-
-                // Clear previous results
-                resultsList.innerHTML = "";
-                errorMessage.style.display = "none"; // Hide error message if no errors
-                noAuctionsMessage.style.display = "none"; // Hide the "no auctions" message initially
-
-                if (data.results.length === 0) {
-                    // No auctions found, show the "no recent auctions" message
-                    noAuctionsMessage.style.display = "block";
-                    return;
-                }
-
-                // Otherwise, display the auction results
-                data.results.forEach(auction => {
-                    const li = document.createElement('li');
-                    
-                    // Safely handle the item_data and count_section
-                    let auction_item_name = auction.item_name ? auction.item_name : "No item name available";
-                    let countSectionDisplay = auction.count_section ? auction.count_section : "No 'Count\\x' section available";
-
-                    if (countSectionDisplay > 1) {
-                        auction_item_name = `${auction.item_name} (${countSectionDisplay})`;
-                    }
-
-                    li.innerHTML = ` 
-                        <strong>${auction_item_name}</strong><br>
-                        ${auction.image_url ? `<img src="${auction.image_url}" alt="${auction.item_name}"><br>` : ""} 
-                        Price: $${auction.starting_bid.toLocaleString()}<br>
-                        Seller: ${auction.seller}<br>
-                        Listed: ${auction.time_display}<br>
-                    `;
-                    resultsList.appendChild(li);
-                });
-            } catch (error) {
-                console.error("Error fetching auctions:", error);
-                showError("Failed to fetch auction data. Please try again.");
-            } finally {
-                // Hide spinner after loading is done and remove the gap
-                document.getElementById('spinner').style.display = 'none';
-                document.getElementById('spinner-container').style.marginTop = '0'; // Remove the gap
-            }
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorMessage = document.getElementById('error-message');
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = message;
-        }
-
-        // Auto-refresh results every 30 seconds
-        setInterval(fetchAuctions, 30000);
-
-        // Trigger search on Enter key press
-        document.getElementById('searchInput').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                fetchAuctions();
-            }
-        });
-
-        // Load the items list when the page loads
-        loadItemList();
-    </script>
-
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -217,6 +64,175 @@
             text-align: center;
             font-size: 18px;
         }
+
+        #no-auctions-message h5, #no-auctions-message h6 {
+            margin: 0; /* Remove any default margin */
+        }
+
+        #no-auctions-message h6 {
+            margin-top: 5px; /* Reduce the margin between h5 and h6 */
+        }
     </style>
+</head>
+<body>
+    <h1>Hypixel SkyBlock Auctions Search</h1>
+    <h4>Search for an item to get live, real-time listings from the SkyBlock auction house!</h4>
+    
+    <!-- Wrap the search box and spinner together -->
+    <div style="position: relative; display: inline-block; width: 100%;">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search for an item..."
+        />
+        <button onclick="fetchAuctions()">Search</button>
+    </div>
+
+    <!-- Space for the spinner -->
+    <div id="spinner-container" style="margin-top: 15px; text-align: center;">
+        <div id="spinner" style="display: none;"></div>
+    </div>
+
+    <!-- Display error message (if any) -->
+    <div id="error-message" style="color: red; display: none;"></div>
+
+    <!-- No Auctions Found Message -->
+    <div id="no-auctions-message" style="display: none; color: rgb(63, 63, 63); margin-top: 15px; text-align: left;">
+        <h5>No recent auctions available at the moment.</h5>
+        <h6>(We're still searching, and new auctions will appear here as they are posted.)</h6>
+    </div>
+
+    <ul id="results-list"></ul>
+
+    <script>
+        let itemList = []; // Initialize an empty list to hold the item data from the JSON.
+        let isSearching = false; // Flag to track if a search is in progress.
+
+        // Load the items from the JSON file
+        async function loadItemList() {
+            try {
+                const response = await fetch('/skyblock_item_list.json');
+                const data = await response.json();
+                itemList = data; // Assign the list of items to the itemList variable
+            } catch (error) {
+                console.error("Error loading item list:", error);
+            }
+        }
+
+        // Normalize input by removing special characters and converting to lowercase
+        function normalizeString(str) {
+            return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
+        }
+
+        // Function to check if the search term matches any item name or id
+        function isItemValid(searchTerm) {
+            const normalizedSearchTerm = normalizeString(searchTerm);
+            return itemList.some(item => 
+                normalizeString(item.name).includes(normalizedSearchTerm) || 
+                normalizeString(item.id).includes(normalizedSearchTerm)
+            );
+        }
+
+        // Function to fetch auctions based on search input
+        async function fetchAuctions() {
+            if (isSearching) return; // Prevent new search if already searching
+            const searchTerm = document.getElementById('searchInput').value;
+            if (!searchTerm) return;
+
+            // Check if the search term is valid (matches an item)
+            if (!isItemValid(searchTerm)) {
+                showError("No item detected. Please check for typos.");
+                return;
+            }
+
+            // Set isSearching to true to indicate that a search is in progress
+            isSearching = true;
+
+            // Show spinner and add a gap
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('spinner-container').style.marginTop = '75px'; // Add a gap for the spinner
+
+            try {
+                const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';  // Replace this with your actual backend URL
+                const response = await fetch(`${searchApiUrl}?search_item=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+
+                // Handle errors in response
+                if (!data.results) {
+                    showError("No results found or error fetching auctions.");
+                    return;
+                }
+
+                const resultsList = document.getElementById('results-list');
+                const errorMessage = document.getElementById('error-message');
+                const noAuctionsMessage = document.getElementById('no-auctions-message');
+
+                // Clear previous results
+                resultsList.innerHTML = "";
+                errorMessage.style.display = "none"; // Hide error message if no errors
+                noAuctionsMessage.style.display = "none"; // Hide the "no auctions" message initially
+
+                if (data.results.length === 0) {
+                    // No auctions found, show the "no recent auctions" message
+                    noAuctionsMessage.style.display = "block";
+                    return;
+                }
+
+                // Otherwise, display the auction results
+                data.results.forEach(auction => {
+                    const li = document.createElement('li');
+                    
+                    let auction_item_name = auction.item_name ? auction.item_name : "No item name available";
+                    let countSectionDisplay = auction.count_section ? auction.count_section : "No 'Count\\x' section available";
+
+                    if (countSectionDisplay > 1) {
+                        auction_item_name = `${auction.item_name} (${countSectionDisplay})`;
+                    }
+
+                    li.innerHTML = ` 
+                        <strong>${auction_item_name}</strong><br>
+                        ${auction.image_url ? `<img src="${auction.image_url}" alt="${auction.item_name}"><br>` : ""} 
+                        Price: $${auction.starting_bid.toLocaleString()}<br>
+                        Seller: ${auction.seller}<br>
+                        Listed: ${auction.time_display}<br>
+                    `;
+                    resultsList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error fetching auctions:", error);
+                showError("Failed to fetch auction data. Please try again.");
+            } finally {
+                // Hide spinner after loading is done and remove the gap
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('spinner-container').style.marginTop = '0'; // Remove the gap
+                // Set isSearching to false once the search is complete
+                isSearching = false;
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = message;
+        }
+
+        // Auto-refresh results every 15 seconds, but only if no search is in progress
+        setInterval(() => {
+            if (!isSearching) {
+                fetchAuctions();
+            }
+        }, 30000);
+
+        // Trigger search on Enter key press
+        document.getElementById('searchInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                fetchAuctions();
+            }
+        });
+
+        // Load the items list when the page loads
+        loadItemList();
+    </script>
 </body>
 </html>

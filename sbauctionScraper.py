@@ -130,13 +130,26 @@ async def search_auctions(search_item):
             normalized_item_name = normalize_string(auction['item_name'])
             
             if normalized_search_item in normalized_item_name and auction.get('bin', False):
-                image_url = next((item['png'] for item in items if normalize_string(item['name']) == normalized_item_name), None)
+                # Find the most specific match for the item_name from the items in the JSON
+                best_match = None
+                for item in items:
+                    normalized_name = normalize_string(item['name'])
+                    # Only consider matches where the normalized item_name is a substring of the normalized JSON name
+                    if normalized_item_name in normalized_name:
+                        if not best_match or len(normalized_name) > len(best_match['name']):
+                            best_match = item
 
+                # If a match is found, use the png field of the best match
+                image_url = best_match['png'] if best_match else None
+
+                # Get seller name based on UUID
                 auctioneer_uuid = auction.get('auctioneer', None)
                 seller_name = await get_username(auctioneer_uuid) if auctioneer_uuid else 'Unknown Seller'
                 
+                # Calculate the time since the auction was posted
                 auction_time = time_ago(auction['start'])
 
+                # Decode and process the item data (item_bytes, if available)
                 item_bytes_base64 = auction.get('item_bytes')
                 decoded_item_data = None
                 count_section = None
@@ -154,16 +167,17 @@ async def search_auctions(search_item):
                                 count_value = following_data[0] + following_data[1]
                                 count_int = int(count_value, 16)
 
+                # Append the found auction to the results
                 found_auctions.append({
                     "item_name": auction["item_name"],
                     "starting_bid": auction["starting_bid"],
                     "seller": seller_name,
                     "time_display": auction_time,
-                    "image_url": image_url,
+                    "image_url": image_url,  # Image URL from the matched item
                     "count_section": count_int
                 })
 
-        await asyncio.sleep(1)  # Keep the rate-limiting intact
+        await asyncio.sleep(1)  # Sleep to respect rate-limiting
 
     return found_auctions
 
