@@ -27,7 +27,7 @@ templates = Jinja2Templates(directory=".")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Setup caching
-cache = Cache.from_url("redis://localhost:6379")  # Change to in-memory cache if Redis is unavailable
+cache = Cache.from_url("redis://red-cv91uu23esus73b62s30:6379")  # Change to in-memory cache if Redis is unavailable
 
 
 # Helper function to format time since posting
