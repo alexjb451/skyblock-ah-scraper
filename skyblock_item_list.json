@@ -156,7 +156,7 @@
         "id": "COCO_CHOPPER"
     },
     {
-        "name": "InfiniDirt\u00e2\u201e\u00a2 Wand",
+        "name": "InfiniDirt Wand",
         "id": "INFINIDIRT_WAND"
     },
     {
@@ -3864,7 +3864,7 @@
         "id": "EGGLOCATOR"
     },
     {
-        "name": "Fish Chocolat \u00c3\u00a0 la Vapeur",
+        "name": "Fish Chocolat la Vapeur",
         "id": "STEAMED_CHOCOLATE_FISH"
     },
     {
@@ -5348,7 +5348,7 @@
         "id": "SECRET_BINGO_MEMENTO"
     },
     {
-        "name": "A\u00e2\u2019\u00b7iphone",
+        "name": "Abiphone",
         "id": "ABINGOPHONE"
     },
     {
@@ -5536,7 +5536,7 @@
         "id": "AOTE_STONE"
     },
     {
-        "name": "\u00c2\u00a7cMushroom & Warts Stew",
+        "name": "Mushroom & Warts Stew",
         "id": "WARTS_STEW"
     },
     {
@@ -5772,7 +5772,7 @@
         "id": "KINDRED"
     },
     {
-        "name": "\u00c2\u00a7cRose Bouquet",
+        "name": "Rose Bouquet",
         "id": "ROSE_BOUQUET"
     },
     {
@@ -19260,7 +19260,7 @@
         "id": "WEDDING_RING_3"
     },
     {
-        "name": "\u00c2\u00a7eYellow Rock of Love",
+        "name": "Yellow Rock of Love",
         "id": "WEDDING_RING_1"
     },
     {
@@ -19280,7 +19280,7 @@
         "id": "WEDDING_RING_2"
     },
     {
-        "name": "\u00c2\u00a7eShiny Yellow Rock",
+        "name": "Shiny Yellow Rock",
         "id": "WEDDING_RING_0"
     },
     {
@@ -19306,5 +19306,9 @@
     {
         "name": "Sirius' Personal Phone Number",
         "id": "SIRIUS_PERSONAL_PHONE_NUMBER"
+    },
+    {
+        "name": "Great Shark Magma Lord Skin",
+        "id": "GREAT_SHARK_MAGMA_LORD_SKIN"
     }
 ]
