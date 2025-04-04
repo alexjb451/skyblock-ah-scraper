@@ -11,7 +11,6 @@ import base64
 import gzip
 import io
 
-
 app = FastAPI()
 
 # Allow CORS for frontend communication
@@ -26,11 +25,10 @@ app.add_middleware(
 templates = Jinja2Templates(directory=".")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Setup caching
-cache = Cache.from_url("redis://red-cv91uu23esus73b62s30:6379")  # Change to in-memory cache if Redis is unavailable
+# Setup caching (adjust as necessary)
+cache = Cache.from_url("redis://red-cv91uu23esus73b62s30:6379")  # Change to in-memory cache if needed
 
-
-# Helper function to format time since posting
+# Helper function to format the time since an auction was posted.
 def time_ago(timestamp):
     now = datetime.utcnow()
     created_time = datetime.utcfromtimestamp(timestamp / 1000)
@@ -57,7 +55,7 @@ async def get_item_list():
         items = json.load(file)
     return items
 
-# Load items and map images
+# Asynchronously load item data from JSON (for matching images, etc.).
 async def load_items():
     try:
         with open('skyblock_item_ids.json', 'r') as file:
@@ -67,19 +65,18 @@ async def load_items():
         print(f"Error loading items: {e}")
         return []
 
-# Helper function to normalize strings
+# Helper function to normalize strings (removing non-alphanumeric characters and lowercasing).
 def normalize_string(s):
-    """Normalize the string by converting to lowercase and removing special characters."""
     return ''.join(e for e in s if e.isalnum()).lower()
 
-# Get auction data from API (Asynchronous version)
+# Asynchronous function to get auction data from the Hypixel API.
 async def get_auctions(page=0):
     url = f'https://api.hypixel.net/v2/skyblock/auctions?page={page}'
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
     return response.json()
 
-# Get seller name from UUID
+# Asynchronous function to get the seller's username from their UUID.
 async def get_username(uuid):
     url = f"https://sessionserver.mojang.com/session/minecraft/profile/{uuid}"
     async with httpx.AsyncClient() as client:
@@ -88,39 +85,24 @@ async def get_username(uuid):
         return response.json().get('name', 'Unknown Seller')
     return 'Unknown Seller'
 
-# Helper function to decode and decompress base64 item bytes
+# Helper function to decode and decompress base64-encoded item bytes.
 def decode_and_decompress(item_bytes_base64):
     try:
-        # Decode from Base64
         item_bytes = base64.b64decode(item_bytes_base64)
-
-        # Decompress the data using gzip
         with gzip.GzipFile(fileobj=io.BytesIO(item_bytes), mode='rb') as f:
             decompressed_data = f.read()
-
-        # Return the raw binary data as a byte string in Python format (e.g., b'\n\x00\x00\t...')
-        return {"type": "raw", "data": repr(decompressed_data)}  # repr() formats it like a byte string (e.g., b'\n\x00\x00\t...')
-
+        return {"type": "raw", "data": repr(decompressed_data)}
     except Exception as e:
-        return {"type": "error", "data": str(e)}  # Return error message if any error occurs
+        return {"type": "error", "data": str(e)}
 
-# Load items asynchronously
-async def load_items():
-    try:
-        with open('skyblock_item_ids.json', 'r') as file:
-            items = json.load(file)
-        return items
-    except Exception as e:
-        print(f"Error loading items: {e}")
-        return []
-
-# Update the search_auctions function to call load_items asynchronously
+# Searches for auctions matching the search_item and collects extra details.
 async def search_auctions(search_item):
     found_auctions = []
-    items = await load_items()  # Ensure async loading of items
+    items = await load_items()  # Asynchronously load items
 
     normalized_search_item = normalize_string(search_item)
 
+    # Loop over two pages of auctions.
     for page in range(2):
         auctions = await get_auctions(page)
         if not auctions.get('success', False):
@@ -130,29 +112,31 @@ async def search_auctions(search_item):
             normalized_item_name = normalize_string(auction['item_name'])
             
             if normalized_search_item in normalized_item_name and auction.get('bin', False):
-                # Find the most specific match for the item_name from the items in the JSON
+                # Find the most specific match from the items JSON.
                 best_match = None
                 for item in items:
                     normalized_name = normalize_string(item['name'])
-                    # Only consider matches where the normalized item_name is a substring of the normalized JSON name
-                    if normalized_item_name in normalized_name:
-                        if not best_match or len(normalized_name) > len(best_match['name']):
+                    if normalized_search_item in normalized_name:
+                        if not best_match or len(normalized_name) > len(normalize_string(best_match['name'])):
                             best_match = item
 
-                # If a match is found, use the png field of the best match
                 image_url = best_match['png'] if best_match else None
 
-                # Get seller name based on UUID
+                # Get seller name based on UUID.
                 auctioneer_uuid = auction.get('auctioneer', None)
                 seller_name = await get_username(auctioneer_uuid) if auctioneer_uuid else 'Unknown Seller'
                 
-                # Calculate the time since the auction was posted
+                # Format the auction's posted time.
                 auction_time = time_ago(auction['start'])
 
-                # Decode and process the item data (item_bytes, if available)
+                # Safely convert starting_bid to an int.
+                try:
+                    starting_bid = int(float(auction.get("starting_bid", 0)))
+                except (ValueError, TypeError):
+                    starting_bid = 0
+
+                # Process item_bytes (if available) to extract count information.
                 item_bytes_base64 = auction.get('item_bytes')
-                decoded_item_data = None
-                count_section = None
                 count_int = None
                 if item_bytes_base64:
                     decoded_item_data = decode_and_decompress(item_bytes_base64)
@@ -167,38 +151,54 @@ async def search_auctions(search_item):
                                 count_value = following_data[0] + following_data[1]
                                 count_int = int(count_value, 16)
 
-                # Append the found auction to the results
                 found_auctions.append({
                     "item_name": auction["item_name"],
-                    "starting_bid": auction["starting_bid"],
+                    "starting_bid": starting_bid,
                     "seller": seller_name,
                     "time_display": auction_time,
-                    "image_url": image_url,  # Image URL from the matched item
+                    "image_url": image_url,
                     "count_section": count_int
                 })
 
-        await asyncio.sleep(1)  # Sleep to respect rate-limiting
+        # Respect rate-limiting by sleeping briefly.
+        await asyncio.sleep(1)
 
     return found_auctions
 
-
-# Serve the main page
+# Serve the main page.
 @app.get("/")
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "results": []})
 
-# API route for searching auctions
+# API route for searching auctions with optional min_price and max_price constraints.
 @app.get("/search")
-async def search(search_item: str = Query(...)):
-    # Check cache first
-    cached_results = await cache.get(search_item)
+async def search(
+    search_item: str = Query(...),
+    min_price: float = Query(None),
+    max_price: float = Query(None)
+):
+    # Create a cache key that includes search term and price constraints.
+    cache_key = f"{search_item}:{min_price}:{max_price}"
+    cached_results = await cache.get(cache_key)
     if cached_results:
-        return {"results": json.loads(cached_results)}  # Return cached results if available
+        return {"results": json.loads(cached_results)}
 
-    # If not cached, search auctions
+    # Search auctions based on the search term.
     auctions = await search_auctions(search_item)
 
-    # Cache the results for 60 seconds
-    await cache.set(search_item, json.dumps(auctions), ttl=60)
+    # Debug logging: print auction count and received price constraints.
+    print(f"Auctions before filtering: {len(auctions)}")
+    print(f"min_price: {min_price}, max_price: {max_price}")
+    
+    # Filter auctions to only include those whose starting_bid is between min_price and max_price.
+    if min_price is not None:
+        auctions = [auction for auction in auctions if auction["starting_bid"] >= min_price]
+    if max_price is not None:
+        auctions = [auction for auction in auctions if auction["starting_bid"] <= max_price]
+
+    print(f"Auctions after filtering: {len(auctions)}")
+
+    # Cache the filtered results for 60 seconds.
+    await cache.set(cache_key, json.dumps(auctions), ttl=60)
 
     return {"results": auctions}

@@ -1,238 +1,260 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyBlock Auctions Search</title>
-    <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        input, button {
-            padding: 10px;
-            margin: 5px;
-            font-size: 16px;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            margin-bottom: 15px;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 10px;
-        }
-        img {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-        }
-        /* Spinner styling */
-        #spinner {
-            display: none;
-            position: absolute;
-            top: 180px; /* Position below search box */
-            left: 7%; /* Center horizontally */
-            transform: translateX(-50%);
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Error message styling */
-        #error-message {
-            color: red;
-            margin-top: 10px;
-        }
-
-        /* No auctions message styling */
-        #no-auctions-message {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 18px;
-        }
-
-        #no-auctions-message h5, #no-auctions-message h6 {
-            margin: 0; /* Remove any default margin */
-        }
-
-        #no-auctions-message h6 {
-            margin-top: 5px; /* Reduce the margin between h5 and h6 */
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyBlock Auctions Search</title>
+  <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+    }
+    img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+    }
+    /* Spinner styling */
+    #spinner {
+      display: none;
+      position: absolute;
+      top: 180px;
+      left: 7%;
+      transform: translateX(-50%);
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    /* Error message styling */
+    #error-message {
+      color: red;
+      margin-top: 10px;
+    }
+    /* No auctions message styling */
+    #no-auctions-message {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 18px;
+    }
+    #no-auctions-message h5,
+    #no-auctions-message h6 {
+      margin: 0;
+    }
+    #no-auctions-message h6 {
+      margin-top: 5px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Hypixel SkyBlock Auctions Search</h1>
-    <h4>Search for an item to get live, real-time listings from the SkyBlock auction house!</h4>
-    
-    <!-- Wrap the search box and spinner together -->
-    <div style="position: relative; display: inline-block; width: 100%;">
-        <input
-            type="text"
-            id="searchInput"
-            placeholder="Search for an item..."
-        />
-        <button onclick="fetchAuctions()">Search</button>
-    </div>
+  <h1>Hypixel SkyBlock Auctions Search</h1>
+  <h4>Search for an item to get live, real-time listings from the SkyBlock auction house!</h4>
+  
+  <!-- New inputs for min and max price constraints -->
+  <div>
+    <input type="number" id="minPrice" placeholder="Min Price" style="width: 120px;" />
+    <input type="number" id="maxPrice" placeholder="Max Price" style="width: 120px;" />
+  </div>
 
-    <!-- Space for the spinner -->
-    <div id="spinner-container" style="margin-top: 15px; text-align: center;">
-        <div id="spinner" style="display: none;"></div>
-    </div>
+  <!-- Search input and button -->
+  <div style="position: relative; display: inline-block; width: 100%;">
+    <input type="text" id="searchInput" placeholder="Search for an item..." />
+    <button onclick="fetchAuctions()">Search</button>
+  </div>
 
-    <!-- Display error message (if any) -->
-    <div id="error-message" style="color: red; display: none;"></div>
+  <!-- Spinner container -->
+  <div id="spinner-container" style="margin-top: 15px; text-align: center;">
+    <div id="spinner"></div>
+  </div>
 
-    <!-- No Auctions Found Message -->
-    <div id="no-auctions-message" style="display: none; color: rgb(63, 63, 63); margin-top: 15px; text-align: left;">
-        <h5>No recent auctions available at the moment.</h5>
-        <h6>(We're still searching, and new auctions will appear here as they are posted.)</h6>
-    </div>
+  <!-- Error message display -->
+  <div id="error-message" style="display: none;"></div>
 
-    <ul id="results-list"></ul>
+  <!-- No Auctions Found Message -->
+  <div id="no-auctions-message" style="display: none; color: rgb(63, 63, 63); margin-top: 15px; text-align: left;">
+    <h5>No recent auctions available at the moment.</h5>
+    <h6>(We're still searching, and new auctions will appear here as they are posted.)</h6>
+  </div>
 
-    <script>
-        let itemList = []; // Initialize an empty list to hold the item data from the JSON.
-        let isSearching = false; // Flag to track if a search is in progress.
+  <ul id="results-list"></ul>
 
-        // Load the items from the JSON file
-        async function loadItemList() {
-            try {
-                const response = await fetch('/skyblock_item_list.json');
-                const data = await response.json();
-                itemList = data; // Assign the list of items to the itemList variable
-            } catch (error) {
-                console.error("Error loading item list:", error);
-            }
+  <script>
+    let itemList = []; // Holds item data loaded from JSON.
+    let isSearching = false; // Tracks if a search is in progress.
+    let notifiedAuctionIds = new Set(); // Track auction IDs for notifications.
+
+    // Load items from the JSON file.
+    async function loadItemList() {
+      try {
+        const response = await fetch('/skyblock_item_list.json');
+        const data = await response.json();
+        itemList = data;
+      } catch (error) {
+        console.error("Error loading item list:", error);
+      }
+    }
+
+    // Normalize strings for better matching.
+    function normalizeString(str) {
+      return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
+    }
+
+    // Verify that the search term matches any item in the list.
+    function isItemValid(searchTerm) {
+      const normalizedSearchTerm = normalizeString(searchTerm);
+      return itemList.some(item =>
+        normalizeString(item.name).includes(normalizedSearchTerm) ||
+        normalizeString(item.id).includes(normalizedSearchTerm)
+      );
+    }
+
+    // Request notification permission on page load.
+    if ("Notification" in window) {
+      Notification.requestPermission().then(permission => {
+        console.log("Notification permission:", permission);
+      });
+    }
+
+    // Fetch auctions using the search input and price constraints.
+    async function fetchAuctions() {
+      if (isSearching) return;
+      const searchTerm = document.getElementById('searchInput').value;
+      if (!searchTerm) return;
+
+      if (!isItemValid(searchTerm)) {
+        showError("No item detected. Please check for typos.");
+        return;
+      }
+
+      isSearching = true;
+      document.getElementById('spinner').style.display = 'block';
+      document.getElementById('spinner-container').style.marginTop = '75px';
+
+      // Retrieve the min and max price values.
+      const minPrice = document.getElementById('minPrice').value;
+      const maxPrice = document.getElementById('maxPrice').value;
+      console.log("minPrice:", minPrice, "maxPrice:", maxPrice);
+
+      try {
+        const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';
+        let url = `${searchApiUrl}?search_item=${encodeURIComponent(searchTerm)}`;
+        if (minPrice) {
+          url += `&min_price=${encodeURIComponent(minPrice)}`;
+        }
+        if (maxPrice) {
+          url += `&max_price=${encodeURIComponent(maxPrice)}`;
         }
 
-        // Normalize input by removing special characters and converting to lowercase
-        function normalizeString(str) {
-            return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.results) {
+          showError("No results found or error fetching auctions.");
+          return;
         }
 
-        // Function to check if the search term matches any item name or id
-        function isItemValid(searchTerm) {
-            const normalizedSearchTerm = normalizeString(searchTerm);
-            return itemList.some(item => 
-                normalizeString(item.name).includes(normalizedSearchTerm) || 
-                normalizeString(item.id).includes(normalizedSearchTerm)
-            );
+        const resultsList = document.getElementById('results-list');
+        const errorMessage = document.getElementById('error-message');
+        const noAuctionsMessage = document.getElementById('no-auctions-message');
+
+        // Clear previous results and error messages.
+        resultsList.innerHTML = "";
+        errorMessage.style.display = "none";
+        noAuctionsMessage.style.display = "none";
+
+        if (data.results.length === 0) {
+          noAuctionsMessage.style.display = "block";
+          return;
         }
 
-        // Function to fetch auctions based on search input
-        async function fetchAuctions() {
-            if (isSearching) return; // Prevent new search if already searching
-            const searchTerm = document.getElementById('searchInput').value;
-            if (!searchTerm) return;
-
-            // Check if the search term is valid (matches an item)
-            if (!isItemValid(searchTerm)) {
-                showError("No item detected. Please check for typos.");
-                return;
+        // Process and display auction results, including notifications for new auctions.
+        data.results.forEach(auction => {
+          // If the auction has a unique auction_id and hasn't been notified yet.
+          if (auction.auction_id && !notifiedAuctionIds.has(auction.auction_id)) {
+            notifiedAuctionIds.add(auction.auction_id);
+            if (Notification.permission === "granted") {
+              const notificationTitle = "New Auction Alert!";
+              const notificationOptions = {
+                body: `${auction.item_name} for $${auction.starting_bid.toLocaleString()}`,
+                icon: auction.image_url || '/static/images/default_icon.png'
+              };
+              new Notification(notificationTitle, notificationOptions);
             }
+          }
 
-            // Set isSearching to true to indicate that a search is in progress
-            isSearching = true;
-
-            // Show spinner and add a gap
-            document.getElementById('spinner').style.display = 'block';
-            document.getElementById('spinner-container').style.marginTop = '75px'; // Add a gap for the spinner
-
-            try {
-                const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';  // Replace this with your actual backend URL
-                const response = await fetch(`${searchApiUrl}?search_item=${encodeURIComponent(searchTerm)}`);
-                const data = await response.json();
-
-                // Handle errors in response
-                if (!data.results) {
-                    showError("No results found or error fetching auctions.");
-                    return;
-                }
-
-                const resultsList = document.getElementById('results-list');
-                const errorMessage = document.getElementById('error-message');
-                const noAuctionsMessage = document.getElementById('no-auctions-message');
-
-                // Clear previous results
-                resultsList.innerHTML = "";
-                errorMessage.style.display = "none"; // Hide error message if no errors
-                noAuctionsMessage.style.display = "none"; // Hide the "no auctions" message initially
-
-                if (data.results.length === 0) {
-                    // No auctions found, show the "no recent auctions" message
-                    noAuctionsMessage.style.display = "block";
-                    return;
-                }
-
-                // Otherwise, display the auction results
-                data.results.forEach(auction => {
-                    const li = document.createElement('li');
-                    
-                    let auction_item_name = auction.item_name ? auction.item_name : "No item name available";
-                    let countSectionDisplay = auction.count_section ? auction.count_section : "No 'Count\\x' section available";
-
-                    if (countSectionDisplay > 1) {
-                        auction_item_name = `${auction.item_name} (${countSectionDisplay})`;
-                    }
-
-                    li.innerHTML = ` 
-                        <strong>${auction_item_name}</strong><br>
-                        ${auction.image_url ? `<img src="${auction.image_url}" alt="${auction.item_name}"><br>` : ""} 
-                        Price: $${auction.starting_bid.toLocaleString()}<br>
-                        Seller: ${auction.seller}<br>
-                        Listed: ${auction.time_display}<br>
-                    `;
-                    resultsList.appendChild(li);
-                });
-            } catch (error) {
-                console.error("Error fetching auctions:", error);
-                showError("Failed to fetch auction data. Please try again.");
-            } finally {
-                // Hide spinner after loading is done and remove the gap
-                document.getElementById('spinner').style.display = 'none';
-                document.getElementById('spinner-container').style.marginTop = '0'; // Remove the gap
-                // Set isSearching to false once the search is complete
-                isSearching = false;
-            }
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorMessage = document.getElementById('error-message');
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = message;
-        }
-
-        // Auto-refresh results every 15 seconds, but only if no search is in progress
-        setInterval(() => {
-            if (!isSearching) {
-                fetchAuctions();
-            }
-        }, 30000);
-
-        // Trigger search on Enter key press
-        document.getElementById('searchInput').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                fetchAuctions();
-            }
+          const li = document.createElement('li');
+          let auction_item_name = auction.item_name ? auction.item_name : "No item name available";
+          let countSectionDisplay = auction.count_section ? auction.count_section : "No 'Count\\x' section available";
+          if (countSectionDisplay > 1) {
+            auction_item_name = `${auction.item_name} (${countSectionDisplay})`;
+          }
+          li.innerHTML = `
+            <strong>${auction_item_name}</strong><br>
+            ${auction.image_url ? `<img src="${auction.image_url}" alt="${auction.item_name}"><br>` : ""}
+            Price: $${auction.starting_bid.toLocaleString()}<br>
+            Seller: ${auction.seller}<br>
+            Listed: ${auction.time_display}<br>
+          `;
+          resultsList.appendChild(li);
         });
+      } catch (error) {
+        console.error("Error fetching auctions:", error);
+        showError("Failed to fetch auction data. Please try again.");
+      } finally {
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('spinner-container').style.marginTop = '0';
+        isSearching = false;
+      }
+    }
 
-        // Load the items list when the page loads
-        loadItemList();
-    </script>
+    // Display an error message.
+    function showError(message) {
+      const errorMessage = document.getElementById('error-message');
+      errorMessage.style.display = 'block';
+      errorMessage.textContent = message;
+    }
+
+    // Auto-refresh results every 30 seconds if no search is in progress.
+    setInterval(() => {
+      if (!isSearching) {
+        fetchAuctions();
+      }
+    }, 30000);
+
+    // Trigger search on Enter key press.
+    document.getElementById('searchInput').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        fetchAuctions();
+      }
+    });
+
+    // Load the item list when the page loads.
+    loadItemList();
+  </script>
 </body>
 </html>
