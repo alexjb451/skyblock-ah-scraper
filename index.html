@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SkyBlock Auctions Search</title>
   <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon" />
+  <!-- noUiSlider CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.0/nouislider.min.css" integrity="sha512-lzO2fL+TqOUwF8PYcCV2zU2AcU7D3q0KlgUn5SChocNeSG4Ul7vMqQrqkx8jiYkuJ+3JZa2V1S98I25ea5AdKg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -44,12 +46,8 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
     /* Error message styling */
     #error-message {
@@ -69,23 +67,33 @@
     #no-auctions-message h6 {
       margin-top: 5px;
     }
+    /* Slider container */
+    #price-values {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    #price-slider {
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>Hypixel SkyBlock Auctions Search</h1>
   <h4>Search for an item to get live, real-time listings from the SkyBlock auction house!</h4>
   
-  <!-- New inputs for min and max price constraints -->
-  <div>
-    <input type="number" id="minPrice" placeholder="Min Price" style="width: 120px;" />
-    <input type="number" id="maxPrice" placeholder="Max Price" style="width: 120px;" />
-  </div>
-
   <!-- Search input and button -->
   <div style="position: relative; display: inline-block; width: 100%;">
     <input type="text" id="searchInput" placeholder="Search for an item..." />
     <button onclick="fetchAuctions()">Search</button>
   </div>
+
+  <!-- Price Range Slider -->
+  <div id="price-values">
+    <span id="minValue">$0</span>
+    <span id="maxValue">$10,000,000</span>
+  </div>
+  <div id="price-slider"></div>
 
   <!-- Spinner container -->
   <div id="spinner-container" style="margin-top: 15px; text-align: center;">
@@ -103,10 +111,32 @@
 
   <ul id="results-list"></ul>
 
+  <!-- noUiSlider JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.0/nouislider.min.js" integrity="sha512-mnEDHuB6vdH6/7bxosQ4eA6pEQ64ovPH7bU2HePh8bJD9Ufp+hmnKhmHJfYX/MBLOFhe9b6ePym4/wQF9rVm5g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     let itemList = []; // Holds item data loaded from JSON.
     let isSearching = false; // Tracks if a search is in progress.
     let notifiedAuctionIds = new Set(); // Track auction IDs for notifications.
+
+    // Initialize the slider using noUiSlider
+    var priceSlider = document.getElementById('price-slider');
+    noUiSlider.create(priceSlider, {
+      start: [0, 10000000],
+      connect: true,
+      range: {
+        'min': 0,
+        'max': 10000000
+      },
+      step: 1000
+    });
+    // Update the display when slider values change.
+    priceSlider.noUiSlider.on('update', function (values, handle) {
+      if(handle === 0) {
+        document.getElementById('minValue').innerText = "$" + parseInt(values[0]).toLocaleString();
+      } else {
+        document.getElementById('maxValue').innerText = "$" + parseInt(values[1]).toLocaleString();
+      }
+    });
 
     // Load items from the JSON file.
     async function loadItemList() {
@@ -133,14 +163,7 @@
       );
     }
 
-    // Request notification permission on page load.
-    if ("Notification" in window) {
-      Notification.requestPermission().then(permission => {
-        console.log("Notification permission:", permission);
-      });
-    }
-
-    // Fetch auctions using the search input and price constraints.
+    // Fetch auctions using the search input and slider values for price constraints.
     async function fetchAuctions() {
       if (isSearching) return;
       const searchTerm = document.getElementById('searchInput').value;
@@ -155,20 +178,17 @@
       document.getElementById('spinner').style.display = 'block';
       document.getElementById('spinner-container').style.marginTop = '75px';
 
-      // Retrieve the min and max price values.
-      const minPrice = document.getElementById('minPrice').value;
-      const maxPrice = document.getElementById('maxPrice').value;
+      // Retrieve slider values for min and max price.
+      const sliderValues = priceSlider.noUiSlider.get();
+      const minPrice = parseInt(sliderValues[0]);
+      const maxPrice = parseInt(sliderValues[1]);
       console.log("minPrice:", minPrice, "maxPrice:", maxPrice);
 
       try {
-        const searchApiUrl = 'https://skyblock-ah-scraper.onrender.com/search';
+        // Update the search API URL as needed.
+        const searchApiUrl = 'http://127.0.0.1:8000/search';
         let url = `${searchApiUrl}?search_item=${encodeURIComponent(searchTerm)}`;
-        if (minPrice) {
-          url += `&min_price=${encodeURIComponent(minPrice)}`;
-        }
-        if (maxPrice) {
-          url += `&max_price=${encodeURIComponent(maxPrice)}`;
-        }
+        url += `&min_price=${minPrice}&max_price=${maxPrice}`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -192,9 +212,8 @@
           return;
         }
 
-        // Process and display auction results, including notifications for new auctions.
+        // Process and display auction results.
         data.results.forEach(auction => {
-          // If the auction has a unique auction_id and hasn't been notified yet.
           if (auction.auction_id && !notifiedAuctionIds.has(auction.auction_id)) {
             notifiedAuctionIds.add(auction.auction_id);
             if (Notification.permission === "granted") {
